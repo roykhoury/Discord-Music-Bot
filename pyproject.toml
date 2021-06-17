@@ -1,11 +1,11 @@
 [tool.poetry]
-name = "repl_python3_Discord-Music-Bot"
+name = "Discord-Music-Bot"
 version = "0.1.0"
 description = ""
-authors = ["Your Name <you@example.com>"]
+authors = ["Roy Khoury <roy_khoury12@hotmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.8.0"
 discord = "^1.0.1"
 youtube-dl = "^2021.6.6"
 PyNaCl = "^1.4.0"
