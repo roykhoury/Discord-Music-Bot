@@ -1,16 +1,12 @@
 import os
-import asyncio
 
-from discord import FFmpegPCMAudio
 from discord.ext import commands
-from discord.utils import get
-from youtube_dl import YoutubeDL
+from song_player import SongPlayer
 
-prefix = '!'
-song_queue = []
-bot = commands.Bot(command_prefix=prefix)
-ydl_options = {'format': 'bestaudio', 'noplaylist': 'True', 'default_search': 'ytsearch', 'rm_cachedir': 'True'}
-ffmpeg_options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': ['-vn']}
+import constants
+
+bot = commands.Bot(command_prefix=constants.prefix)
+song_player = SongPlayer()
 
 
 @bot.event
@@ -20,92 +16,72 @@ async def on_ready():
 
 @bot.command(pass_context=True)
 async def play(ctx, *, source):
-    # connect to voice chat if not already
-    if not ctx.guild.voice_client:
-        voice_channel = ctx.message.author.voice.channel
-        await voice_channel.connect()
-
-    # Make it look like the bot is typing ;)
-    async with ctx.typing():
-
-        # Download url or playlist
-        with YoutubeDL(ydl_options) as ydl:
-            info = ydl.extract_info(source, download=False)
-
-        if 'entries' in info:
-            song_info = info['entries'][0]
-        else:
-            song_info = info
-
-        url = song_info['formats'][0]['url']
-        title = song_info['title']
-
-        # Append song to queue
-        voice = get(bot.voice_clients, guild=ctx.guild)
-        song_queue.append({'url': url, 'title': title})
-
-        if voice.is_playing():
-            await ctx.send('Adding to queue {0}'.format(title))
-        else:
-            play_next(ctx, voice)
+    await song_player.play(ctx, source, bot)
 
 
-def play_next(ctx, voice):
-    if len(song_queue) <= 0:
-        return
-
-    try:
-        song = song_queue.pop()
-        player = FFmpegPCMAudio(song['url'], **ffmpeg_options)
-        voice.play(player, after=lambda e: play_next(ctx, voice))
-        send_message = ctx.send('Playing {0}'.format(song['title']))
-        asyncio.run_coroutine_threadsafe(send_message, bot.loop)
-    except:
-        pass
+@bot.command(pass_context=True)
+async def queue(ctx, *, source):
+    await song_player.queue(ctx, source)
 
 
 @bot.command(pass_context=True)
 async def skip(ctx):
-    voice = get(bot.voice_clients, guild=ctx.guild)
-    play_next(ctx, voice)
+    await song_player.skip(ctx, bot)
+
+
+@bot.command(pass_context=True)
+async def show(ctx):
+    await song_player.show(ctx)
+
+
+@bot.command(pass_context=True)
+async def offset(ctx, seconds):
+    await song_player.offset(ctx, bot, int(seconds))
 
 
 @bot.command(pass_context=True)
 async def pause(ctx):
-    voice = get(bot.voice_clients, guild=ctx.guild)
-    if voice and voice.is_playing():
-        voice.pause()
-        await ctx.send('Paused!')
-    else:
-        await ctx.send('Nothing playing right now!')
+    await song_player.pause(ctx, bot)
 
 
 @bot.command(pass_context=True)
 async def stop(ctx):
-    await pause.invoke(ctx)
+    await song_player.stop(ctx, bot)
 
 
 @bot.command(pass_context=True)
 async def resume(ctx):
-    voice = get(bot.voice_clients, guild=ctx.guild)
-    if voice and not voice.is_playing():
-        voice.resume()
-        await ctx.send('Resuming!')
-    else:
-        await ctx.send('Nothing paused right now!')
+    await song_player.resume(ctx, bot)
 
 
+@pause.error
 @play.error
-async def play_error(ctx, error):
+@resume.error
+@show.error
+@offset.error
+@skip.error
+@stop.error
+async def on_error(ctx, error):
     # if error is no channel found, return a msg to user
     if not ctx.message.author.voice:
-        await ctx.send('Come on {0}, connect to a channel first!'.format(ctx.message.author.mention))
+        await ctx.send('{0}, connect to a channel first!'.format(ctx.message.author.mention))
         return
 
     # Other unknown error
     msg = 'Command failed from {0}\n' \
           'Error: {1}\n'.format(ctx.message.author.mention, error)
     await ctx.send(msg)
+
+
+@bot.before_invoke
+async def common(ctx):
+    # connect to voice chat if not already
+    if not ctx.guild.voice_client and ctx.message.author.voice:
+        voice_channel = ctx.message.author.voice.channel
+        await voice_channel.connect()
+
+    # Make it look like the bot is typing ;)
+    await ctx.trigger_typing()
 
 
 bot.run(os.getenv('TOKEN'))
