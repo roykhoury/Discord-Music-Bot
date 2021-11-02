@@ -35,8 +35,13 @@ async def show(ctx):
 
 
 @bot.command(pass_context=True)
-async def offset(ctx, seconds):
-    await song_player.offset(ctx, bot, int(seconds))
+async def info(ctx):
+    await song_player.info(ctx)
+
+
+@bot.command(pass_context=True)
+async def playfrom(ctx, seconds):
+    await song_player.play_from(ctx, bot, int(seconds))
 
 
 @bot.command(pass_context=True)
@@ -58,9 +63,11 @@ async def resume(ctx):
 @play.error
 @resume.error
 @show.error
-@offset.error
+@playfrom.error
+@queue.error
 @skip.error
 @stop.error
+@show.error
 async def on_error(ctx, error):
     # if error is no channel found, return a msg to user
     if not ctx.message.author.voice:
