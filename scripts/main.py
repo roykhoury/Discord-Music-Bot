@@ -2,10 +2,12 @@ import os
 
 from discord.ext import commands
 from song_player import SongPlayer
+from documentation import display_help
 
 import constants
 
 bot = commands.Bot(command_prefix=constants.prefix)
+bot.remove_command('help')
 song_player = SongPlayer()
 
 
@@ -57,6 +59,11 @@ async def stop(ctx):
 @bot.command(pass_context=True)
 async def resume(ctx):
     await song_player.resume(ctx, bot)
+
+
+@bot.command(pass_context=True)
+async def help(ctx):
+    await display_help(ctx)
 
 
 @pause.error
