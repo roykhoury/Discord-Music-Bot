@@ -1,6 +1,6 @@
 async def display_help(ctx):
     help_message = "Welcome to AFK Player <Beta>!:musical_note: :smile:\n" \
-                   "*[The music bot currently only supports Youtube links]*" \
+                   "*[The music bot currently only supports Youtube links]*\n" \
                    "\t:arrow_forward: **!play <keywords | link>**\n"\
                    "\t\tPlay song from [keywords] or [youtube-link]\n" \
                    "\t\tThis command will override whatever is next in the song queue\n" \
